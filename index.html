@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Üfle Çal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one-screen instrument. Controls stacked on top, keyboard fills the lower half.
+   Single visual world: grenadilla wood body, nickel keywork, brass accent, ivory keys. */
+:root{
+  color-scheme: dark;
+  --wood:#1c1614;
+  --wood-raised:#2a211e;
+  --wood-line:#43352f;
+  --ivory:#f1e9da;
+  --ivory-dim:#b9ad9b;
+  --nickel:#c3c7cb;
+  --brass:#d2a646;
+  --brass-deep:#8f6c22;
+  --ebony:#0e0b0a;
+  --font-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --font-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:var(--wood);
+  color:var(--ivory);
+  font-family:var(--font-body);
+  font-size:15px;
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;
+}
+.app{
+  height:100%;
+  max-width:560px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:14px 16px 0;
+}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:22px;
+  letter-spacing:-0.01em;
+  margin:0;
+}
+.tag{color:var(--ivory-dim);font-size:13px}
+
+/* instrument picker */
+.instruments{
+  display:flex;gap:8px;
+  overflow-x:auto;
+  margin:0 -16px;padding:2px 16px;
+  scrollbar-width:none;
+}
+.instruments::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;
+  font:600 14px var(--font-body);
+  color:var(--ivory-dim);
+  background:transparent;
+  border:1px solid var(--wood-line);
+  border-radius:999px;
+  padding:8px 14px;
+}
+.chip[aria-pressed="true"]{
+  color:var(--ebony);
+  background:var(--nickel);
+  border-color:var(--nickel);
+}
+
+/* note readout */
+.stage{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.note{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:56px;
+  line-height:0.95;
+  letter-spacing:-0.02em;
+}
+.note small{
+  font-family:var(--font-body);
+  font-weight:500;
+  font-size:14px;
+  letter-spacing:0;
+  color:var(--ivory-dim);
+  margin-left:8px;
+  font-variant-numeric:tabular-nums;
+}
+.octave{display:flex;align-items:center;gap:8px}
+.octave span{font-size:13px;color:var(--ivory-dim);min-width:58px;text-align:center;font-variant-numeric:tabular-nums}
+.round{
+  width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--wood-line);
+  background:var(--wood-raised);
+  color:var(--ivory);
+  font:600 20px/1 var(--font-body);
+}
+.round:disabled{opacity:.35}
+
+/* breath tube */
+.breath{display:flex;flex-direction:column;gap:6px}
+.breath-head{display:flex;justify-content:space-between;font-size:13px;color:var(--ivory-dim)}
+.tube{
+  position:relative;
+  height:26px;
+  border-radius:13px;
+  background:var(--ebony);
+  border:1px solid var(--wood-line);
+  overflow:hidden;
+}
+.tube-fill{
+  position:absolute;inset:0 auto 0 0;
+  width:100%;
+  transform-origin:left center;
+  transform:scaleX(0);
+  background:linear-gradient(90deg,var(--brass-deep),var(--brass));
+  border-radius:13px;
+}
+.tube-holes{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:space-evenly;
+  pointer-events:none;
+}
+.tube-holes i{width:8px;height:8px;border-radius:50%;background:var(--wood);opacity:.7}
+
+/* source controls */
+.source{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.seg{display:flex;border:1px solid var(--wood-line);border-radius:10px;overflow:hidden}
+.seg button{
+  font:600 14px var(--font-body);
+  padding:9px 14px;
+  color:var(--ivory-dim);
+  background:transparent;
+  border:0;
+}
+.seg button[aria-pressed="true"]{background:var(--brass);color:var(--ebony)}
+.mic-tools{display:flex;align-items:center;gap:10px;flex:1;min-width:180px}
+.mic-tools label{font-size:13px;color:var(--ivory-dim)}
+.mic-tools input[type=range]{flex:1;min-width:70px;accent-color:var(--brass)}
+.ghost{
+  font:600 13px var(--font-body);
+  color:var(--ivory);
+  background:var(--wood-raised);
+  border:1px solid var(--wood-line);
+  border-radius:10px;
+  padding:9px 12px;
+}
+.status{
+  margin:0;
+  font-size:13.5px;
+  line-height:1.4;
+  color:var(--ivory-dim);
+  min-height:38px;
+}
+[hidden]{display:none !important}
+
+/* keyboard */
+.keys{
+  position:relative;
+  flex:1;
+  min-height:190px;
+  margin:0 -8px;
+  touch-action:none;
+  border-top:3px solid var(--brass-deep);
+}
+.key{position:absolute;top:0;display:flex;align-items:flex-end;justify-content:center}
+.key.white{
+  bottom:0;
+  width:12.5%;
+  background:var(--ivory);
+  color:#5b4f44;
+  border-left:1px solid #cdbfa9;
+  border-radius:0 0 7px 7px;
+  padding-bottom:14px;
+  font:600 13px var(--font-body);
+}
+.key.black{
+  height:58%;
+  width:8.2%;
+  background:var(--ebony);
+  border:1px solid #3a2e29;
+  border-top:0;
+  border-radius:0 0 6px 6px;
+  z-index:2;
+}
+.key.sel::after{
+  content:"";
+  position:absolute;left:22%;right:22%;bottom:6px;
+  height:4px;border-radius:2px;
+  background:var(--brass);
+}
+.key.white.down{background:#e2c98c}
+.key.black.down{background:var(--brass-deep)}
+
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+@media (max-height:620px){
+  .note{font-size:42px}
+  .app{gap:8px;padding-top:10px}
+  .status{min-height:0}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Üfle Çal</h1>
+    <span class="tag">nefesli çalgı</span>
+  </header>
+
+  <div class="instruments" id="instruments" role="group" aria-label="Çalgı seç"></div>
+
+  <div class="stage">
+    <div class="note" id="note">Sol<small id="hz">392 Hz</small></div>
+    <div class="octave">
+      <button class="round" id="octDown" aria-label="Bir oktav in">−</button>
+      <span id="octLabel">Oktav 4</span>
+      <button class="round" id="octUp" aria-label="Bir oktav çık">+</button>
+    </div>
+  </div>
+
+  <div class="breath">
+    <div class="breath-head"><span>Nefes</span><span id="breathPct">%0</span></div>
+    <div class="tube" aria-hidden="true">
+      <div class="tube-fill" id="tubeFill"></div>
+      <div class="tube-holes"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+
+  <div class="source">
+    <div class="seg" id="seg" role="group" aria-label="Nefes kaynağı">
+      <button id="modeTouch" aria-pressed="true">Dokunarak</button>
+      <button id="modeMic" aria-pressed="false">Üfleyerek</button>
+    </div>
+    <div class="mic-tools" id="micTools" hidden>
+      <label for="sens">Eşik</label>
+      <input type="range" id="sens" min="1" max="10" step="1" value="5">
+      <button class="ghost" id="recal">Yeniden ayarla</button>
+    </div>
+  </div>
+
+  <p class="status" id="status" aria-live="polite"></p>
+
+  <div class="keys" id="keys" aria-label="Nota tuşları"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- çalgılar: harmonik genlikleri, nefes gürültüsü, vibrato (cent), parlaklık ---------- */
+var INSTRUMENTS = [
+  {id:"flut",    name:"Flüt",     oct:1, h:[1,.42,.12,.07,.03,.015],                      noise:.22, vib:9,  bright:6},
+  {id:"klarnet", name:"Klarnet",  oct:0, h:[1,.03,.62,.04,.36,.05,.2,.03,.12,.02,.07],    noise:.05, vib:2,  bright:9},
+  {id:"obua",    name:"Obua",     oct:0, h:[.55,1,.85,.6,.45,.32,.2,.14,.09,.05],         noise:.04, vib:6,  bright:10},
+  {id:"saksafon",name:"Saksafon", oct:0, h:[1,.75,.55,.4,.3,.24,.16,.12,.08,.06,.04],     noise:.10, vib:10, bright:8},
+  {id:"ney",     name:"Ney",      oct:0, h:[1,.5,.1,.14,.03],                             noise:.40, vib:5,  bright:5},
+  {id:"zurna",   name:"Zurna",    oct:0, h:[.6,.9,1,.9,.8,.6,.5,.4,.3,.25,.2,.15],        noise:.03, vib:4,  bright:14}
+];
+var NOTE_TR = ["Do","Do♯","Re","Re♯","Mi","Fa","Fa♯","Sol","Sol♯","La","La♯","Si"];
+var WHITE = [0,2,4,5,7,9,11,12];
+var BLACK = [[1,1],[3,2],[6,4],[8,5],[10,6]]; // [yarım ton, sağındaki beyaz tuşun sırası]
+
+var $ = function(id){ return document.getElementById(id); };
+var els = {
+  instruments:$("instruments"), note:$("note"), octLabel:$("octLabel"),
+  octDown:$("octDown"), octUp:$("octUp"), tubeFill:$("tubeFill"), breathPct:$("breathPct"),
+  modeTouch:$("modeTouch"), modeMic:$("modeMic"), micTools:$("micTools"), seg:$("seg"),
+  sens:$("sens"), recal:$("recal"), status:$("status"), keys:$("keys")
+};
+
+var state = {
+  inst: INSTRUMENTS[0],
+  octShift: 0,          // -1..+1
+  semi: 7,              // seçili nota (Sol)
+  mode: "touch",        // "touch" | "mic"
+  pressed: false,
+  touchLevel: 0,
+  force: 0,             // ayar sırasında deneme sesi
+  calMeter: -1,         // ayar sırasında ham mikrofon seviyesi
+  breath: 0,            // yumuşatılmış 0..1
+  micLevel: 0
+};
+
+/* ---------- ses motoru ---------- */
+var ctx=null, osc, lp, amp, noiseBp, noiseGain, lfoGain;
+
+function buildAudio(){
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return false;
+  ctx = new AC();
+  osc = ctx.createOscillator();
+  lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.Q.value=0.7; lp.frequency.value=1200;
+  amp = ctx.createGain(); amp.gain.value=0;
+  var master = ctx.createGain(); master.gain.value=0.8;
+  var comp = ctx.createDynamicsCompressor();
+
+  // nefes gürültüsü
+  var len = ctx.sampleRate*2, buf = ctx.createBuffer(1,len,ctx.sampleRate), d = buf.getChannelData(0);
+  for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+  var noise = ctx.createBufferSource(); noise.buffer=buf; noise.loop=true;
+  noiseBp = ctx.createBiquadFilter(); noiseBp.type="bandpass"; noiseBp.Q.value=1.2;
+  noiseGain = ctx.createGain(); noiseGain.gain.value=0;
+
+  // vibrato
+  var lfo = ctx.createOscillator(); lfo.frequency.value=5.2;
+  lfoGain = ctx.createGain(); lfoGain.gain.value=0;
+  lfo.connect(lfoGain); lfoGain.connect(osc.detune);
+
+  osc.connect(lp); lp.connect(amp);
+  noise.connect(noiseBp); noiseBp.connect(noiseGain); noiseGain.connect(amp);
+  amp.connect(master); master.connect(comp); comp.connect(ctx.destination);
+
+  applyWave();
+  osc.frequency.value = currentFreq();
+  noiseBp.frequency.value = currentFreq()*2;
+  osc.start(); noise.start(); lfo.start();
+  return true;
+}
+function ensureAudio(){
+  if(!ctx && !buildAudio()){
+    setStatus("Bu tarayıcı ses üretimini desteklemiyor. Güncel bir Chrome veya Safari ile aç.");
+    return false;
+  }
+  if(ctx.state!=="running"){ try{ var p=ctx.resume(); if(p&&p.catch) p.catch(function(){}); }catch(e){} }
+  return true;
+}
+function applyWave(){
+  if(!ctx) return;
+  var h = state.inst.h, n=h.length+1;
+  var real=new Float32Array(n), imag=new Float32Array(n);
+  for(var i=0;i<h.length;i++) imag[i+1]=h[i];
+  osc.setPeriodicWave(ctx.createPeriodicWave(real,imag));
+}
+function currentMidi(){ return 60 + 12*(state.inst.oct+state.octShift) + state.semi; }
+function currentFreq(){ return 440*Math.pow(2,(currentMidi()-69)/12); }
+function retune(){
+  if(!ctx) return;
+  var f=currentFreq(), t=ctx.currentTime;
+  osc.frequency.setTargetAtTime(f,t,0.012);
+  noiseBp.frequency.setTargetAtTime(Math.min(f*2,9000),t,0.012);
+}
+
+/* ---------- mikrofon ---------- */
+var mic = {stream:null, analyser:null, fbuf:null, lo:2, hi:6, floorDb:-90, leakDb:-200, maxDb:-30, samples:[],
+           phase:0, phaseStart:0, phaseEnd:0, sum:0, n:0, saved:null, outEnv:0, nodes:[]};
+
+function micPolicyAllows(){
+  var fp = document.featurePolicy || document.permissionsPolicy;
+  try{ if(fp && fp.allowsFeature) return fp.allowsFeature("microphone"); }catch(e){}
+  return null; // bilinmiyor
+}
+function startMic(){
+  if(!ensureAudio()) return;
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setStatus("Mikrofon yalnızca https:// ile açılan sayfalarda çalışır. Sayfayı güvenli bir adresten aç.");
+    return;
+  }
+  setStatus("Mikrofon izni bekleniyor…");
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})
+  .then(function(stream){
+    mic.stream=stream;
+    var src=ctx.createMediaStreamSource(stream);
+    var an=ctx.createAnalyser(); an.fftSize=2048; an.smoothingTimeConstant=0;
+    var mute=ctx.createGain(); mute.gain.value=0;
+    src.connect(an); an.connect(mute); mute.connect(ctx.destination);
+    // Üfleme mikrofonda çok alçak frekanslı bir uğultu yapar; çalgının sesi ise bu bandın üstündedir.
+    // Yalnızca 40–150 Hz arasını ölçerek hoparlörden çıkan sesi büyük ölçüde dışarıda bırakıyoruz.
+    var binHz=ctx.sampleRate/an.fftSize;
+    mic.lo=Math.max(1,Math.ceil(40/binHz)); mic.hi=Math.max(mic.lo,Math.floor(150/binHz));
+    mic.analyser=an; mic.fbuf=new Float32Array(an.frequencyBinCount); mic.nodes=[src,an,mute];
+    setMode("mic");
+    calibrate();
+  })
+  .catch(function(err){
+    var n = err && err.name;
+    if(n==="NotAllowedError"||n==="SecurityError"){
+      setStatus("Mikrofona izin verilmedi. Bu sayfa bir önizleme içinde açıldıysa mikrofon kapalıdır; kendi adresinde açıp izin ver. Şimdilik dokunarak çalabilirsin.");
+    }else if(n==="NotFoundError"){
+      setStatus("Bu cihazda mikrofon bulunamadı.");
+    }else{
+      setStatus("Mikrofon açılamadı. Başka bir uygulama kullanıyor olabilir; kapatıp yeniden dene.");
+    }
+  });
+}
+function endCalTone(){
+  if(mic.saved){
+    state.semi=mic.saved.semi; state.octShift=mic.saved.oct; mic.saved=null;
+    retune();
+  }
+  state.force=0;
+}
+function stopMic(){
+  endCalTone(); mic.phase=0; state.calMeter=-1;
+  if(mic.stream){ mic.stream.getTracks().forEach(function(t){t.stop();}); }
+  mic.nodes.forEach(function(n){ try{n.disconnect();}catch(e){} });
+  mic.stream=null; mic.analyser=null; mic.nodes=[]; state.micLevel=0;
+}
+/* Ayar iki adımdır: önce ortam sessizliği ölçülür, sonra kısa bir deneme sesi çalınıp
+   hoparlörden mikrofona ne kadar ses sızdığı ölçülür. Çalarken eşik bu sızıntı kadar yükseltilir. */
+function calibrate(){
+  if(!mic.analyser) return;
+  endCalTone(); state.calMeter=-1;
+  mic.phase=1; mic.phaseEnd=performance.now()+900; mic.sum=0; mic.n=0;
+  setStatus("Ortam sessizliği ölçülüyor. Üfleme, ardından kısa bir deneme sesi çalacak…");
+}
+function bandDb(){
+  mic.analyser.getFloatFrequencyData(mic.fbuf);
+  var p=0;
+  for(var i=mic.lo;i<=mic.hi;i++) p+=Math.pow(10,mic.fbuf[i]/10);
+  return 10*Math.log10(p+1e-14);
+}
+function readMic(){
+  if(!mic.analyser) return 0;
+  var db=bandDb(), now=performance.now();
+  if(mic.phase===1){
+    mic.sum+=db; mic.n++;
+    if(now>=mic.phaseEnd){
+      mic.floorDb=mic.sum/mic.n;
+      mic.saved={semi:state.semi, oct:state.octShift};
+      state.semi=0; state.octShift=-1; retune();   // en kalın nota: sızıntının en fazla olduğu durum
+      state.force=1;
+      mic.phase=2; mic.phaseStart=now; mic.phaseEnd=now+600; mic.sum=0; mic.n=0;
+      setStatus("Deneme sesi çalıyor, hoparlörün mikrofona etkisi ölçülüyor…");
+    }
+    return 0;
+  }
+  if(mic.phase===2){
+    if(now>mic.phaseStart+220){ mic.sum+=db; mic.n++; }
+    if(now>=mic.phaseEnd){
+      mic.leakDb = mic.n ? mic.sum/mic.n : -200;
+      endCalTone();
+      mic.phase=3; mic.phaseStart=now; mic.phaseEnd=now+3200; mic.samples=[];
+      setStatus("Şimdi mikrofona EN GÜÇLÜ hâlinle üfle ve çubuk dolana kadar devam et…");
+    }
+    return 0;
+  }
+  if(mic.phase===3){
+    // deneme sesinin sönmesi için ilk 400 ms atlanır
+    if(now>mic.phaseStart+400) mic.samples.push(db);
+    state.calMeter = Math.max(0,Math.min(1,(db-mic.floorDb)/70));
+    if(now>=mic.phaseEnd){
+      var a=mic.samples.slice().sort(function(x,y){return x-y;});
+      var top = a.length ? a[Math.floor(a.length*0.85)] : -200;
+      mic.phase=0; mic.outEnv=0; state.calMeter=-1;
+      if(top < mic.floorDb+15){
+        mic.maxDb = mic.floorDb+45;
+        setStatus("Üfleme algılanamadı. Mikrofonu (telefonun alt kenarı) ağzına yaklaştır ve Yeniden ayarla'ya bas.");
+      }else{
+        mic.maxDb = top;
+        setStatus("Hazır. Hafif üflersen kısık ve yumuşak, güçlü üflersen yüksek ve parlak ses çıkar. Ses çok kolay başlıyorsa Eşik'i sağa çek.");
+      }
+    }
+    return 0;
+  }
+  var guard = mic.leakDb + 20*Math.log10(Math.max(mic.outEnv,1e-4));  // kendi sesimizin beklenen sızıntısı
+  // Eşik: sessizlik ile en güçlü üfleme arasındaki aralığın yüzde kaçından sonra ses başlar
+  var T = 0.10 + 0.08*Number(els.sens.value);            // 1..10 → %18..%90
+  var thr = mic.floorDb + (mic.maxDb-mic.floorDb)*T;
+  if(guard+10>thr) thr=guard+10;
+  var span = Math.max(mic.maxDb-thr, 6);
+  var v=(db-thr)/span;
+  return v<0?0:(v>1?1:v);
+}
+
+/* ---------- arayüz ---------- */
+function setStatus(t){ els.status.textContent=t; }
+function touchHint(){ setStatus("Bir tuşa bas ve tut. Parmağını tuşun üstüne doğru kaydırdıkça nefes güçlenir."); }
+
+function setMode(m){
+  state.mode=m;
+  els.modeTouch.setAttribute("aria-pressed", String(m==="touch"));
+  els.modeMic.setAttribute("aria-pressed", String(m==="mic"));
+  els.micTools.hidden = (m!=="mic");
+  if(m==="touch"){ stopMic(); touchHint(); }
+}
+
+function renderNote(){
+  var oct = 4 + state.inst.oct + state.octShift + (state.semi>=12?1:0);
+  els.note.innerHTML = NOTE_TR[state.semi%12] + "<small>" + Math.round(currentFreq()) + " Hz</small>";
+  els.octLabel.textContent = "Oktav " + (4+state.inst.oct+state.octShift);
+  els.octDown.disabled = state.octShift<=-1;
+  els.octUp.disabled = state.octShift>=1;
+  var ks=els.keys.children;
+  for(var i=0;i<ks.length;i++) ks[i].classList.toggle("sel", Number(ks[i].dataset.semi)===state.semi);
+  void oct;
+}
+
+INSTRUMENTS.forEach(function(inst){
+  var b=document.createElement("button");
+  b.className="chip"; b.textContent=inst.name; b.id="inst-"+inst.id;
+  b.setAttribute("aria-pressed", String(inst===state.inst));
+  b.addEventListener("click", function(){
+    state.inst=inst;
+    Array.prototype.forEach.call(els.instruments.children,function(c){ c.setAttribute("aria-pressed", String(c===b)); });
+    ensureAudio(); applyWave(); retune(); renderNote();
+    if(state.mode==="mic") calibrate();
+  });
+  els.instruments.appendChild(b);
+});
+
+WHITE.forEach(function(semi,i){
+  var k=document.createElement("div");
+  k.className="key white"; k.dataset.semi=semi; k.style.left=(i*12.5)+"%";
+  k.textContent=NOTE_TR[semi%12];
+  els.keys.appendChild(k);
+});
+BLACK.forEach(function(p){
+  var k=document.createElement("div");
+  k.className="key black"; k.dataset.semi=p[0]; k.style.left=(p[1]*12.5-4.1)+"%";
+  els.keys.appendChild(k);
+});
+
+/* tuşlar: tek sesli, son dokunan parmak geçerli, kaydırınca nota değişir */
+var pointers=[]; // {id, semi, level}
+function keyInfo(e){
+  var el=document.elementFromPoint(e.clientX,e.clientY);
+  var key=el && el.closest ? el.closest(".key") : null;
+  if(!key || !els.keys.contains(key)) return null;
+  var r=els.keys.getBoundingClientRect();
+  var y=(r.bottom-e.clientY)/r.height; if(y<0)y=0; if(y>1)y=1;
+  return {semi:Number(key.dataset.semi), level:0.35+0.65*y};
+}
+function syncPointers(){
+  var ks=els.keys.children, top=pointers[pointers.length-1];
+  for(var i=0;i<ks.length;i++){
+    ks[i].classList.toggle("down", !!top && Number(ks[i].dataset.semi)===top.semi);
+  }
+  state.pressed=!!top;
+  if(top){
+    state.touchLevel=top.level;
+    if(top.semi!==state.semi){ state.semi=top.semi; retune(); renderNote(); }
+  }
+}
+els.keys.addEventListener("pointerdown",function(e){
+  e.preventDefault();
+  ensureAudio();
+  if(mic.phase) return;
+  var info=keyInfo(e); if(!info) return;
+  try{ els.keys.setPointerCapture(e.pointerId); }catch(err){}
+  pointers.push({id:e.pointerId, semi:info.semi, level:info.level});
+  syncPointers();
+});
+els.keys.addEventListener("pointermove",function(e){
+  for(var i=0;i<pointers.length;i++) if(pointers[i].id===e.pointerId){
+    var info=keyInfo(e);
+    if(info){ pointers[i].semi=info.semi; pointers[i].level=info.level; syncPointers(); }
+    return;
+  }
+});
+function release(e){
+  ensureAudio(); // iOS sesi parmak kalkınca açar
+  pointers=pointers.filter(function(p){return p.id!==e.pointerId;});
+  syncPointers();
+}
+els.keys.addEventListener("pointerup",release);
+els.keys.addEventListener("pointercancel",release);
+els.keys.addEventListener("contextmenu",function(e){e.preventDefault();});
+
+els.octDown.addEventListener("click",function(){ if(mic.phase) return; if(state.octShift>-1){state.octShift--; retune(); renderNote();} });
+els.octUp.addEventListener("click",function(){ if(mic.phase) return; if(state.octShift<1){state.octShift++; retune(); renderNote();} });
+els.modeTouch.addEventListener("click",function(){ ensureAudio(); setMode("touch"); });
+els.modeMic.addEventListener("click",function(){ if(state.mode!=="mic") startMic(); });
+els.recal.addEventListener("click",calibrate);
+
+/* ---------- ana döngü: nefes → ses ---------- */
+function frame(){
+  var target;
+  if(state.mode==="mic"){ state.micLevel=readMic(); target = state.force ? 1 : state.micLevel; }
+  else target = state.pressed ? state.touchLevel : 0;
+
+  var k = target>state.breath ? 0.45 : 0.18;   // hızlı atak, yumuşak bırakma
+  state.breath += (target-state.breath)*k;
+  if(state.breath<0.004) state.breath=0;
+  var b=state.breath;
+  mic.outEnv = Math.max(Math.pow(b,1.8), mic.outEnv*0.93);
+
+  var shown = state.calMeter>=0 ? state.calMeter : b;
+  els.tubeFill.style.transform="scaleX("+shown.toFixed(3)+")";
+  els.breathPct.textContent="%"+Math.round(shown*100);
+
+  if(ctx){
+    var t=ctx.currentTime, f=currentFreq(), inst=state.inst;
+    amp.gain.setTargetAtTime(Math.pow(b,1.8)*0.95, t, 0.02);            // hafif nefes belirgin biçimde kısık
+    lp.frequency.setTargetAtTime(Math.min(f*(1.1+inst.bright*1.3*b*b), 15000), t, 0.03); // hafif nefes boğuk, güçlü nefes parlak
+    noiseGain.gain.setTargetAtTime(inst.noise*(0.4+0.6*b), t, 0.03);
+    lfoGain.gain.setTargetAtTime(inst.vib*b, t, 0.15);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- başlangıç ---------- */
+renderNote();
+if(micPolicyAllows()===false){
+  els.seg.hidden=true;
+  setStatus("Bu önizlemede mikrofon kapalı, o yüzden dokunarak çalınır: tuşa bas, parmağını yukarı kaydırdıkça nefes güçlenir. Üfleyerek çalmak için sayfayı kendi adresinde aç.");
+}else{
+  touchHint();
+}
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden){ pointers=[]; syncPointers(); }
+});
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
