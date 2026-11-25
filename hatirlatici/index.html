@@ -362,6 +362,16 @@ body.k .icon-btn,body.k .btn:not(.y):not(.g){background:linear-gradient(var(--pe
   <div class="ft"><button class="btn" data-close>Vazgeç</button><button class="btn y" id="sSave">Kaydet</button></div>
 </div></div>
 
+<div class="ov" id="welcome"><div class="box">
+  <h2>İMAJ Hatırlatıcı'ya hoş geldiniz</h2>
+  <div class="bd">
+    <p class="note" style="font-size:15px">Kırmızı butona basılı tutup konuşun: <b>"Yarın saat 10'da toplantı var"</b> deyin, zamanı gelince sesli hatırlatayım. "Hava nasıl?", "Dolar kaç?" gibi sorular da sorabilirsiniz.</p>
+    <div class="fld"><label>Size nasıl hitap edeyim?</label><input id="wName" placeholder="Örn. Ahmet Bey"></div>
+    <div class="fld"><label>Groq anahtarı (isteğe bağlı, ücretsiz)</label><input id="wGroq" autocomplete="off" spellcheck="false" placeholder="gsk_..."></div>
+    <p class="note" style="margin-top:-6px">Anahtar, konuşmayı daha iyi anlamak ve serbest sorulara cevap vermek için. console.groq.com'dan e-postayla ücretsiz alınır. Sonra Ayarlar'dan da girebilirsiniz.</p>
+  </div>
+  <div class="ft"><button class="btn y" id="wGo" style="width:100%">Başla</button></div>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -464,7 +474,7 @@ function parseNote(input,now){
 
 /* ---------- veri ---------- */
 const KEY='imajHatirlatici.v1';
-const DEF={panel:'#2c3136',theme:'yeni',groq:'',gem:'',tom:'',city:'İskenderun',jami:false,name:'Murat Bey',gender:'kadin',voice:'',rate:1,morning:'10:00',pre:30,ws:'08:30',we:'18:30',snooze:60,confirm:true};
+const DEF={panel:'#2c3136',theme:'yeni',groq:'',gem:'',tom:'',city:'İskenderun',jami:false,name:'',gender:'kadin',voice:'',rate:1,morning:'10:00',pre:30,ws:'08:30',we:'18:30',snooze:60,confirm:true};
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.notes))return{notes:d.notes,set:Object.assign({},DEF,d.set)}}catch(e){}return{notes:[],set:Object.assign({},DEF)}}
 let S=load(),bk=0;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}backup();syncNative();render()}
@@ -634,7 +644,7 @@ function render(){
   list.sort(filt==='up'?(a,b)=>(a.date+(a.time||'99')).localeCompare(b.date+(b.time||'99')):(a,b)=>(b.doneAt||0)-(a.doneAt||0));
   if(filt==='done')list=list.slice(0,60);
   const box=$('#items');
-  if(!list.length){box.innerHTML=`<div class="empty">${filt==='up'?'Yaklaşan hatırlatma yok.<br>Kırmızı butona basılı tutup söyleyin:<br>"Not al, yarın Kayseri\'ye kargo gidecek"':'Biten hatırlatma yok.'}</div>`;lcdIdle();return}
+  if(!list.length){box.innerHTML=`<div class="empty">${filt==='up'?'Yaklaşan hatırlatma yok.<br>Kırmızı butona basılı tutup söyleyin:<br>"Yarın Kayseri\'ye kargo gidecek"':'Biten hatırlatma yok.'}</div>`;lcdIdle();return}
   let grp='';
   box.innerHTML=list.map(n=>{
     const d=fromYmd(n.date);let h='';
@@ -1275,6 +1285,13 @@ function drawSw(){
 $('#sSw').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;$('#sPanel').value=b.dataset.c;drawSw();if(S.set.theme==='klasik')applyPanel(b.dataset.c)});
 $('#sPanel').addEventListener('input',()=>{drawSw();if(S.set.theme==='klasik')applyPanel($('#sPanel').value)});
 if(S.set.theme==='klasik'){applyKlasik();applyPanel(S.set.panel)}
+
+/* ---------- ilk açılış ---------- */
+if(!SVC){let seen=null;try{seen=localStorage.getItem('imajHos')}catch(e){}
+  if(!seen&&!S.notes.length&&!(S.set.name||S.set.groq)){$('#welcome').classList.add('show')}
+  else{try{localStorage.setItem('imajHos','1')}catch(e){}}
+  $('#wGo').onclick=()=>{S.set.name=$('#wName').value.trim();const g=$('#wGroq').value.trim();if(g)S.set.groq=g;save();try{localStorage.setItem('imajHos','1')}catch(e){}$('#welcome').classList.remove('show');ac();const nm=S.set.name;speak(`Hoş geldiniz${nm?' '+nm:''}. Kırmızı butona basılı tutup konuşabilirsiniz.`)};
+}
 
 /* ---------- başlangıç ---------- */
 if(NAT)loadVoices();else if('speechSynthesis'in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
